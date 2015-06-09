@@ -43,6 +43,7 @@
 			var restartAtToken = 0;
 			var name = "";
 			var buyShowFlag = false;
+			var news = 0;
 
 			document.onkeypress = grdEvent;
 			document.onirkeypress = grdEvent;
@@ -318,6 +319,7 @@
 							//hashTableObj.put(_params[0], listProgs);
 							totalPage = Math.ceil(jsonData.FolderContents[0].FolderFrame[0].FolderDetails[0].selectableItemCount/itemPerPage);
 							currPage = Number(currPage);
+							news = Number(jsonData.FolderContents[0].FolderFrame[0].FolderDetails[0].selectableItemCount);
 
 							$("pageInfob").innerHTML = '<span style="font-size: 28px;font-weight: 700;">' + (currPage + 1) + '/' + totalPage + '</span>';
 							$("pageInfow").innerHTML = '<span style="font-size: 28px;font-weight: 700;">' + (currPage + 1) + '/' + totalPage + '</span>';
@@ -544,7 +546,8 @@
 
 					//showPop("&from=" + returnIp + "detail1.html?assetId=" + assetId + "&midPos=" + cenPos + "&backtype=" + backtype + "&listArea=" + listArea + "&listCurrPage=" + listCurrPage + "&listDataPos=" + listDataPos);
 
-					window.location.href = playIp + "boundPlay.htm?purchaseToken=" + jsonData.StartResponse[0].purchaseToken + "&previewId=" + jsonData.StartResponse[0].previewAssetId + "&startTime=" + jsonData.StartResponse[0].startTime + "&playCurrName=" + listProgs[cenPos].titleBrief + "&chapter=" + (cenPos + 1) + "&selectItemCount=" + totalResult + "&childAssetId=" + listProgs[cenPos].assetId  + "serviceId=100800000005" + "&resumePoint=" + resumePoint + "&rentDateTime=" + listProgs[cenPos].RentalInfo[0].rentDateTime + "&providerId=" + listProgs[cenPos].providerId + "&displayRunTime=" + listProgs[cenPos].displayRunTime + "&folderAssetId=MANU0000000000078770&from=" + returnIp + "detail1.html#assetId=" + assetId + "&midPos=" + cenPos + "&midCurrPage=" + currPage + "&backtype=" + backtype + "&listCurrPage=" + listCurrPage + "&listDataPos=" + listDataPos;
+					window.location.href = playIp + "boundPlay.htm?purchaseToken=" + jsonData.StartResponse[0].purchaseToken + "&previewId=" + jsonData.StartResponse[0].previewAssetId + "&startTime=" + jsonData.StartResponse[0].startTime + "&playCurrName=" + listProgs[cenPos].titleBrief + "&chapter=" + (cenPos + 1) + "&selectItemCount=" + news + "&childAssetId=" + listProgs[cenPos].assetId  + "serviceId=100800000005" + "&resumePoint=" + resumePoint + "&rentDateTime=" + listProgs[cenPos].RentalInfo[0].rentDateTime + "&providerId=" + listProgs[cenPos].providerId + "&displayRunTime=" + listProgs[cenPos].displayRunTime + "&folderAssetId=MANU0000000000078770&from=" + returnIp + "detail1.html#assetId=" + assetId + "&midPos=" + cenPos + "&midCurrPage=" + currPage + "&backtype=" + backtype + "&listCurrPage=" + listCurrPage + "&listDataPos=" + listDataPos;
+					
 
 				};
 				detailAjaxObj.failureCallback = function(_xmlHttp, _params) {
@@ -615,7 +618,7 @@
 
 					//showPop("&from=" + returnIp + "detail1.html?assetId=" + assetId + "&midPos=" + cenPos + "&backtype=" + backtype + "&listArea=" + listArea + "&listCurrPage=" + listCurrPage + "&listDataPos=" + listDataPos);
 
-					window.location.href = playIp + "boundPlay.htm?purchaseToken=" + jsonData.ResumeResponse[0].purchaseToken + "&previewId=" + jsonData.ResumeResponse[0].previewAssetId + "&startTime=" + jsonData.ResumeResponse[0].startTime + "&playCurrName=" + listProgs[cenPos].titleBrief + "&chapter=" + (cenPos + 1) + "&selectItemCount=" + totalResult + "&childAssetId=" + listProgs[cenPos].assetId + "&resumePoint=" + timePosition + "&rentDateTime=" + listProgs[cenPos].RentalInfo[0].rentDateTime + "serviceId=100800000005" + "&providerId=" + listProgs[cenPos].providerId + "&displayRunTime=" + listProgs[cenPos].displayRunTime + "&folderAssetId=MANU0000000000078770&from=" + returnIp + "detail1.html#assetId=" + assetId + "&midPos=" + cenPos + "&midCurrPage=" + currPage + "&backtype=" + backtype + "&listCurrPage=" + listCurrPage + "&listDataPos=" + listDataPos;
+					window.location.href = playIp + "boundPlay.htm?purchaseToken=" + jsonData.ResumeResponse[0].purchaseToken + "&previewId=" + jsonData.ResumeResponse[0].previewAssetId + "&startTime=" + jsonData.ResumeResponse[0].startTime + "&playCurrName=" + listProgs[cenPos].titleBrief + "&chapter=" + (cenPos + 1) + "&selectItemCount=" + news + "&childAssetId=" + listProgs[cenPos].assetId + "&resumePoint=" + timePosition + "&rentDateTime=" + listProgs[cenPos].RentalInfo[0].rentDateTime + "serviceId=100800000005" + "&providerId=" + listProgs[cenPos].providerId + "&displayRunTime=" + listProgs[cenPos].displayRunTime + "&folderAssetId=MANU0000000000078770&from=" + returnIp + "detail1.html#assetId=" + assetId + "&midPos=" + cenPos + "&midCurrPage=" + currPage + "&backtype=" + backtype + "&listCurrPage=" + listCurrPage + "&listDataPos=" + listDataPos;
 				};
 				detailAjaxObj.failureCallback = function(_xmlHttp, _params) {
 					Utility.println("detailChildren getResumeParams request failed");
