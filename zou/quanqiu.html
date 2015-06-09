@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8">
+		<title></title>
+		<script type="text/javascript" src="common.js"></script>
+		<script>
+			var cenPos = 0;
+			var leftPos = 5;
+			var topPos = 0;
+			var fanPos = 0;
+			var area = 0;
+
+			var listProgs = [];
+			var listAjaxObj = null;
+			var listServiceId = "";
+			var listChargeMode = "";
+			var totalPage = 0;
+			var currPage = 0;
+			var listPos = 0;
+			var itemPerPage = 10;
+			var assetId = "MANU0000000000079804"; //每页固定一个ID
+			var oneRequestFinish = false;
+
+			var listCurrPage = "";
+			var listDataPos = "";
+			var backtype = 5;
+
+			document.onkeypress = grdEvent;
+			document.onirkeypress = grdEvent;
+			document.onsystemevent = grdEvent;
+
+			function grdEvent(event) {
+
+					var keycode = event.which;
+
+					switch (keycode) {
+						case 3:
+						case 37:
+							if (area == 0 && (cenPos == 0 || cenPos == 5))
+								changeArea(1);
+							else if (area == 0 || area == 2 || area == 3)
+								changePos(-1);
+							return 0;
+							break;
+						case 1:
+						case 38:
+							if (area == 0 && cenPos < 5)
+								changeArea(2);
+							else if (area == 0)
+								changePos(-5);
+							else if (area == 3)
+								changeArea(0);
+							else if (area == 1 && leftPos == 0)
+								changeArea(2);
+							else if (area == 1)
+								changePos(-1);
+							return 0;
+							break;
+						case 4:
+						case 39:
+							if (area == 0 || area == 3 || area == 2)
+								changePos(1);
+							else if (area == 1)
+								changeArea(0);
+
+							return 0;
+							break;
+						case 2:
+						case 40:
+							if (area == 2)
+								changeArea(0);
+							else if (area == 0 && cenPos < 5)
+								changePos(5);
+							else if (area == 0)
+								changeArea(3);
+							else if (area == 1 && leftPos == 5)
+								changeArea(3);
+							else
+								changePos(1);
+							return 0;
+							break;
+						case 4097:
+						case 13:
+							doSelect();
+							return 0;
+							break;
+						case 340: // back
+						case 8: // back
+						    window.location.href = "../index.html";
+						    return 0;
+							break;
+						case 339: // exit
+						case 27: // exit
+						case 512:
+						case 513:
+						case 4098: // menu
+							gotoIndex();
+							return 0;
+							break;
+						case 372:
+						case 33:
+							changePage(-1);
+							return 0;
+							break;
+						case 373:
+						case 34:
+							changePage(1);
+							return 0;
+							break;
+					}
+				}
+				/************************************************
+			 * 
+			       移动函数
+														* 
+***********************************************************/
+
+			function changePos(num) {
+				if (area == 0) { //区域0 中间
+					if(num >0 && listProgs.length <= 10 && cenPos >= listProgs.length-1)
+						changeArea(3);
+					else if(num > 0 && listProgs.length > 10 && (cenPos + num ) >= listProgs.length - 10 * currPage - 2 )
+					changeArea(3);
+					else {
+//					var namelist = listProgs[cenPos].type == "S" ? listProgs[cenPos].displayName : listProgs[cenPos].titleBrief;
+//					$("ct" + cenPos).innerText = getStrChineseLen(namelist, 8);
+					cenPos += num;
+					if (cenPos < 0) 
+                        cenPos = 0;
+					if (cenPos > listProgs.length - 10 * currPage - 1)
+						cenPos = (listProgs.length - 10 * currPage - 1);
+//					namelist = listProgs[cenPos].type == "S" ? listProgs[cenPos].displayName : listProgs[cenPos].titleBrief;
+//					if (getStrChineseLength(namelist) > 8)
+//						$("ct" + cenPos).innerHTML = "<marquee>" + namelist + "</marquee>";
+					$("focus").style.top = 117 + 243 * Math.floor(cenPos / 5) + "px";
+					$("focus").style.left = 227 + 200 * (cenPos % 5) + "px";
+					}
+				} else if (area == 1) { //区域1 左侧
+					$("l" + leftPos).style.visibility = "hidden";
+					leftPos += num;
+					if (leftPos < 0) leftPos = 5;
+					if (leftPos > 5) leftPos = 0;
+					$("l" + leftPos).style.visibility = "visible";
+				} else if (area == 2) { //区域2 上方
+					topPos += num;
+					if (topPos == 4) topPos = 0;
+					if (topPos == -1) topPos = 3;
+					$("focus").style.left = 930 + 77 * topPos + "px";
+					$("focus").style.top = "70px";
+				} else if (area == 3) {
+					fanPos = fanPos == 0 ? 1 : 0;
+					$("up").style.visibility = ["hidden", "visible"][fanPos];
+					$("down").style.visibility = ["visible", "hidden"][fanPos];
+				}
+			}
+
+			function changeArea(num) {
+				if (num == 0) {
+					if (area == 1) { //区域1到0
+						if (leftPos < 6) cenPos = 0;
+						// else if(listProgs.length > 5) 
+						// 	cenPos = 5;
+						// else cenPos = 0;
+						$("l" + leftPos).style.visibility = "hidden";
+					} else if (area == 2) { //区域2到0
+						cenPos = 0;
+					} else if (area == 3) { //区域3到0
+                        if (listProgs.length - 10 * currPage >= 10){
+                          cenPos = 9;
+                        }else cenPos = listProgs.length - 10 * currPage - 1;
+//						cenPos = listProgs.length - 10 * currPage - 1;
+						fanPos = 0;
+						$("up").style.visibility = "hidden";
+						$("down").style.visibility = "hidden";
+					}
+					area = 0;
+					$("focus").style.visibility = "visible";
+					$("focus_img").src = "img/focus_center.png";
+					$("focus").style.top = 117 + 243 * Math.floor(cenPos / 5) + "px";
+					$("focus").style.left = 227 + 200 * (cenPos % 5) + "px";
+//					var namelist = listProgs[cenPos].type == "S" ? listProgs[cenPos].displayName : listProgs[cenPos].titleBrief;
+//					if (getStrChineseLength(namelist) > 8)
+//						$("ct" + cenPos).innerHTML = "<marquee>" + namelist + "</marquee>";
+				} else if (num == 1) { //区域0到1
+					area = 1;
+					$("focus").style.visibility = "hidden";
+					$("l" + leftPos).style.visibility = "visible";
+					//var namelist = listProgs[cenPos].type == "S" ? listProgs[cenPos].displayName : listProgs[cenPos].titleBrief;
+					//$("ct" + cenPos).innerText = getStrChineseLen(namelist, 8);
+				} else if (num == 2) { //区域0到2
+					if (area == 1) $("l" + leftPos).style.visibility = "hidden";
+					area = 2;
+					$("focus").style.visibility = "visible";
+					$("focus_img").src = "img/focus_top.png";
+					$("focus").style.left = 930 + 77 * topPos + "px";
+					$("focus").style.top = "70px";
+					//var namelist = listProgs[cenPos].type == "S" ? listProgs[cenPos].displayName : listProgs[cenPos].titleBrief;
+					//$("ct" + cenPos).innerText = getStrChineseLen(namelist, 8);
+				} else if (num == 3) { //区域0/1到3
+					if (area == 0) {
+						$("focus").style.visibility = "hidden";
+						//var namelist = listProgs[cenPos].type == "S" ? listProgs[cenPos].displayName : listProgs[cenPos].titleBrief;
+						//$("ct" + cenPos).innerText = getStrChineseLen(namelist, 8);
+					} else if (area == 1)
+						$("l" + leftPos).style.visibility = "hidden";
+					area = 3;
+					fanPos = 1;
+					$("up").style.visibility = "visible";
+				}
+			}
+
+			function changePage(_num) {
+				if (currPage == 0 && _num < 0) {
+					showPop("当前已是第一页");
+				} else if (currPage == totalPage - 1 && _num > 0) {
+					showPop("当前已是最后一页");
+				} else {
+					if (area == 0 || area == 2)
+						$("focus").style.visibility = "hidden";
+					currPage += _num;
+					if (cenPos > listProgs.length - 10 * currPage - 1)
+						cenPos = (listProgs.length - 10 * currPage - 1);
+					$("focus").style.visibility = "visibility";
+					$("pageInfob").innerHTML = '<span style="font-size: 28px;font-weight: 700;">' + (currPage + 1) + '/' + totalPage + '</span>';
+					$("pageInfow").innerHTML = '<span style="font-size: 28px;font-weight: 700;">' + (currPage + 1) + '/' + totalPage + '</span>';
+//					getlistProgData();
+                    initListPrograms();
+				}
+			}
+			
+			function showPop(_txt) {
+				$("popText").innerText = _txt;
+				$("popMsg").style.visibility = "visible";
+				tipShowFlag = true;
+				clearTimeout(msgTimeout);
+				msgTimeout = setTimeout('$("popMsg").style.visibility = "hidden";tipShowFlag = false;', 3000);
+			}
+
+			function doSelect() {
+				if (area == 0) {
+					// window.location.href = "../wang/detail2.html?assetId=" + listProgs[cenPos].assetId + "&backtype=5&listCurrPage=" + currPage + "&listDataPos=" + cenPos;
+					window.location.href = "../wang/detail2.html?assetId=" + listProgs[cenPos + 10*currPage].assetId + "&backtype=4&listCurrPage=" + currPage + "&listDataPos=" + cenPos;
+				} else if (area == 1) {
+					if (leftPos == 0)
+						window.location.href = "../index.html";
+					else if (leftPos == 1)
+						window.location.href = "redian.html";
+					else if (leftPos == 2)
+						window.location.href = "bendi.html";
+					else if (leftPos == 3)
+						window.location.href = "guonei.html";
+					else if (leftPos == 4)
+						window.location.href = "quanqiu.html";
+					else if (leftPos == 5)
+						window.location.href = "shendu.html";
+				} else if (area == 2) {
+					if (topPos == 0)
+                        window.location.href = "http://vod.fjgdwl.com:80/SearchNew/search_2.htm?" + "&backUrl="+returnIp+"/shendu.html";
+					else if (topPos == 1)
+					//						window.location.href = "http://vod.fjgdwl.com:80/WASU_VOD/" + "bookMark.htm?assetId=" + menuAssetIds[menuType][1] + "&backUrl=listMovie.htm?type=" + menuType + "&listArea=" + area + "&listCurrPage=" + currPage + "&listDataPos=" + pos;
+					{
+						$("popText").innerText = "功能暂未开放，敬请期待";
+						msgTimeout = setTimeout('$("popMsg").style.visibility = "hidden";tipShowFlag = false;', 3000);
+						$("popMsg").style.visibility = "visible";
+					} else if (topPos == 2) {
+						$("popText").innerText = "功能暂未开放，敬请期待";
+						msgTimeout = setTimeout('$("popMsg").style.visibility = "hidden";tipShowFlag = false;', 3000);
+						$("popMsg").style.visibility = "visible";
+					}
+					/*window.location.href = "http://vod.fjgdwl.com:80/WASU_VOD/" + "viewRecord.htm?assetId=" + menuAssetIdsMovie[menuType] + "&backUrl=listMovie.htm?type=" + menuType + "&listArea=" + area + "&listCurrPage=" + currPage + "&listDataPos=" + pos;*/
+					else if (topPos == 3)
+						gotoIndex();
+				} else if (area == 3) {
+					if (fanPos == 0)
+						changePage(1);
+					else
+						changePage(-1);
+				}
+			}
+
+			function init() {
+				listCurrPage = getUrlParams("listCurrPage", window.location.href);
+				listDataPos = getUrlParams("listDataPos", window.location.href);
+				if (listCurrPage != "") currPage = parseInt(listCurrPage, 10);
+				if (listDataPos != "") 
+					cenPos = parseInt(listDataPos, 10);
+				getlistProgData();
+
+			}
+
+			/**************************************************************
+			 * 
+			 		获取中间图文数据
+			 		                   *
+			*************************************************************/
+			function getlistProgData() {
+				listProgs = [];
+				clearListPrograms();
+				var hashTableKey = "getlistProgData_" + assetId + "_" + currPage;
+				var temp = hashTableObj.get(hashTableKey);
+				if(temp != false){
+					series = temp.ChildFolder;
+					movies = temp.SelectableItem;
+					if(typeof series != "undefined"){
+						for(var i = 0; i < series.length; i++){
+							series[i].type = "S";
+						}
+					}
+					else series = [];
+					if(typeof movies != "undefined"){
+						for(var i = 0; i < movies.length; i++){
+							movies[i].type = "M";
+						}
+					}
+					else movies = [];
+					listProgs =series.concat(movies);//concat连接两个数组，所以前面需要判断下
+					iPanel.debug("getlistProgData series=="+series.length+";;movies=="+movies.length+";;listProgs=="+listProgs.length);
+					totalPage = Math.ceil(parseInt(temp.totalResults,10) / itemPerPage);
+					$("loadingImg").style.visibility="hidden" ;
+					initListPrograms();
+					$("listTips").style.visibility = "hidden";
+					$("listProgArea").style.visibility = "visible";
+					$("pageInfo").innerHTML = '<span style="font-size:28px">'+(currPage+1)+'</span>/'+totalPage;		
+					return;
+				}
+				if (listAjaxObj == null) {
+					listAjaxObj = new ajaxClass();
+					listAjaxObj.frame = window;
+				} else {
+					listAjaxObj.requestAbort();
+				}
+				$("loadingIcon").style.visibility = "visible";
+				listAjaxObj.successCallback = function(_xmlHttp, _params) {
+					var data = parseDom(this.getResponseXML());
+					var jsonData = parseJson(data.toJson());
+					if (typeof(jsonData) != "object" || jsonData == null) {
+						$("listTips").innerText = "获取数据失败！";
+						$("listTips").style.visibility = "visible";
+						if (!oneRequestFinish) oneRequestFinish = true;
+						else $("loadingIcon").style.visibility = "hidden";
+						return;
+					}
+					var key = "FolderContents";
+					if (key in jsonData) {
+						var totalResult = parseInt(jsonData.FolderContents[0].totalResults, 10);
+						listServiceId = jsonData.FolderContents[0].FolderFrame[0].serviceId;
+						listChargeMode = jsonData.FolderContents[0].FolderFrame[0].chargeMode;
+						if (totalResult == 0) {
+							//理论上来说应该没有电影返回，可以不用考虑。
+							var series = jsonData.FolderContents[0].ChildFolder;
+							var movies = jsonData.FolderContents[0].SelectableItem;
+							//添加一个属性标识是电视剧还是电影
+							if (typeof series != "undefined") {
+								for (var i = 0; i < series.length; i++) {
+									series[i].type = "S";
+								}
+							} else series = [];
+							if (typeof movies != "undefined") {
+								for (var i = 0; i < movies.length; i++) {
+									movies[i].type = "M";
+								}
+							} else movies = [];
+							listProgs = series.concat(movies);
+							//hashTableObj.put(_params[0], listProgs);
+							totalPage = Math.ceil(series.length / itemPerPage);
+							currPage = Number(currPage);
+							$("pageInfob").innerHTML = '<span style="font-size: 28px;font-weight: 700;">' + (currPage + 1) + '/' + totalPage + '</span>';
+							$("pageInfow").innerHTML = '<span style="font-size: 28px;font-weight: 700;">' + (currPage + 1) + '/' + totalPage + '</span>';
+							initListPrograms();
+							if (area == 0 || area == 2)
+								$("focus").style.visibility = "visible";
+							$("listTips").style.visibility = "hidden";
+							if (!oneRequestFinish) oneRequestFinish = true;
+							$("loadingIcon").style.visibility = "hidden";
+						} else {
+							$("listTips").innerText = "暂无数据";
+							$("listTips").style.visibility = "visible";
+							if (!oneRequestFinish) oneRequestFinish = true;
+							else $("loadingIcon").style.visibility = "hidden";
+						}
+					} else if ("NavServerResponse" in jsonData) {
+						var message = jsonData.NavServerResponse[0].message;
+						var code = jsonData.NavServerResponse[0].code;
+						$("popText").innerText = "发生错误！错误码：" + code + "，请咨询客服96311。";
+						msgTimeout = setTimeout('$("popMsg").style.visibility = "hidden";tipShowFlag = false;', 3000);
+						$("popMsg").style.visibility = "visible";
+						if (!oneRequestFinish) oneRequestFinish = true;
+						else $("loadingIcon").style.visibility = "hidden";
+					} else {
+						$("popText").innerText = "获取数据失败";
+						msgTimeout = setTimeout('$("popMsg").style.visibility = "hidden";tipShowFlag = false;', 3000);
+						$("popMsg").style.visibility = "visible";
+						if (!oneRequestFinish) oneRequestFinish = true;
+						else $("loadingIcon").style.visibility = "hidden";
+					}
+				};
+				listAjaxObj.failureCallback = function(_xmlHttp, _params) {
+					$("listTips").innerText = "获取数据失败！";
+					$("listTips").style.visibility = "visible";
+					if (!oneRequestFinish) oneRequestFinish = true;
+					else $("loadingIcon").style.visibility = "hidden";
+				};
+				listAjaxObj.urlParameters = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><GetFolderContents assetId='" + assetId + "' portalId='1' client='" + CAManager.cardSerialNumber + "' account='" + account + "' startAt='" + (currPage * itemPerPage + 1) + "' maxItems='" + itemPerPage + "' languageCode='Zh-CN' regionCode='1' includeFolderProperties='Y' includeSubFolder='Y' includeSelectableItem='Y' profile='1.0'/>";
+				listAjaxObj.callbackParams = [hashTableKey];
+				listAjaxObj.url = ["http://" + ip + ":" + port + "/GetFolderContents", "data/listProgData_" + menuType + "_" + (currPage + 1) + ".xml"][DEBUG];
+				listAjaxObj.requestData("POST");
+			}
+
+
+			function initListPrograms() {
+                clearListPrograms();
+				var srcPrefix = DEBUG == 0 ? ("http://" + ip + ":" + port + "/") : "";
+				var tmpData=[];
+				if(currPage==totalPage-1){
+					var length=listProgs.length;
+					var temp_length=length%10==0?10:length%10;
+					for (var i=0; i<temp_length; i++){
+						tmpData[tmpData.length]=listProgs[currPage*itemPerPage+i];
+					}
+				}
+				else{
+					for(var i=0; i<10; i++){
+						tmpData[tmpData.length]=listProgs[currPage*itemPerPage+i];
+					}
+				}
+				for (var i = 0; i < itemPerPage; i++) {
+					if (i < tmpData.length) {
+						var posterUrl = "";
+						if (typeof(tmpData[i].Image) != "undefined") {
+							//for (var k = 0; k < listProgs[i].Image.length; k++) { 
+								posterUrl = srcPrefix + tmpData[i].Image[0].posterUrl;
+							//}
+						}
+						$("c" + i).src = posterUrl;
+						var name = tmpData[i].type == "S" ? tmpData[i].displayName : tmpData[i].titleFull;
+						$("ct" + i).innerHTML = getStrChineseLen(name, 8);
+						$("ct" + i).style.backgroundImage = "url(img/zhezhao.png)";
+					}
+				}
+				if((cenPos + 1) > (listProgs.length-(currPage-1)*itemPerPage) )
+				cenPos = listProgs.length-(currPage-1)*itemPerPage -1 ;
+				if (area == 0) {
+				$("focus").style.visibility = "visible";
+				$("focus").style.top = 117 + 243 * Math.floor(cenPos / 5) + "px";
+				$("focus").style.left = 227 + 200 * (cenPos % 5) + "px";
+					var namelist = tmpData[cenPos].type == "S" ? tmpData[cenPos].displayName : tmpData[cenPos].titleFull;
+					if (getStrChineseLength(namelist) > 8)
+						$("ct" + cenPos).innerHTML = "<marquee>" + namelist + "</marquee>";
+
+				}
+			}
+
+			function clearListPrograms() {
+				for (var i = 0; i < itemPerPage; i++) {
+					$("c" + i).src = "img/blank.gif";
+					$("ct" + i).innerText = "";
+					$("ct" + i).style.backgroundImage = "img/blank.gif";
+				}
+			}
+		</script>
+		<style>
+			.div {
+				position: absolute;
+				left: 0px;
+				top: 186px;
+				width: 180px;
+				height: 38px;
+				font-size: 20px;
+				color: white;
+				text-align: center;
+				line-height: 37px;
+			}
+		</style>
+	</head>
+
+	<body background="img/bg.png" leftmargin="0" topmargin="0" onload="init()">
+		<!--
+        	作者：328102775@qq.com
+        	时间：2014-11-28
+        	描述:上方功能栏
+        -->
+		<div id="mt" style="position:absolute;left:934px;top:73px;width:270px;height:20px;z-index: 10;">
+			<img src="img/text.png">
+		</div>
+
+		<!--
+        	作者：328102775@qq.com
+        	时间：2014-11-28
+        	描述：左侧
+        -->
+
+		<div id="l0" style="position: absolute;left:74px;top:115px;visibility: hidden;">
+			<img src="img/toutiao.png">
+		</div>
+		<div id="l1" style="position: absolute;left:74px;top:189px;visibility: hidden;">
+			<img src="img/redian.png">
+		</div>
+		<div id="l2" style="position: absolute;left:74px;top:263px;visibility: hidden;">
+			<img src="img/bendi.png">
+		</div>
+		<div id="l3" style="position: absolute;left:74px;top:337px;visibility: hidden;">
+			<img src="img/guonei.png">
+		</div>
+		<div id="l4" style="position: absolute;left:74px;top:411px;visibility: hidden;">
+			<img src="img/quanqiu.png">
+		</div>
+		<div id="l5" style="position: absolute;left:74px;top:485px;visibility: hidden;">
+			<img src="img/shendu.png">
+		</div>
+		<!--
+        	作者：328102775@qq.com
+        	时间：2014-11-28
+        	描述：中间
+        -->
+		<div style="position: absolute;left:230px ;top:119px;width: 180px;height: 224px;">
+			<img id="c0" src="" style="width: 180px;height: 224px;">
+			<div id="ct0" class="div"></div>
+		</div>
+		<div style="position: absolute;left:430px ;top:119px;">
+			<img id="c1" src="" style="width: 180px;height: 224px;">
+			<div id="ct1" class="div"></div>
+		</div>
+		<div style="position: absolute;left:630px ;top:119px;">
+			<img id="c2" src="" style="width: 180px;height: 224px;">
+			<div id="ct2" class="div"></div>
+		</div>
+		<div style="position: absolute;left:830px ;top:119px;">
+			<img id="c3" src="" style="width: 180px;height: 224px;">
+			<div id="ct3" class="div"></div>
+		</div>
+		<div style="position: absolute;left:1030px ;top:119px;">
+			<img id="c4" src="" style="width: 180px;height: 224px;">
+			<div id="ct4" class="div"></div>
+		</div>
+		<div style="position: absolute;left:230px ;top:362px;">
+			<img id="c5" src="" style="width: 180px;height: 224px;">
+			<div id="ct5" class="div"></div>
+		</div>
+		<div style="position: absolute;left:430px ;top:362px;">
+			<img id="c6" src="" style="width: 180px;height: 224px;">
+			<div id="ct6" class="div"></div>
+		</div>
+		<div style="position: absolute;left:630px ;top:362px;">
+			<img id="c7" src="" style="width: 180px;height: 224px;">
+			<div id="ct7" class="div"></div>
+		</div>
+		<div style="position: absolute;left:830px ;top:362px;">
+			<img id="c8" src="" style="width: 180px;height: 224px;">
+			<div id="ct8" class="div"></div>
+		</div>
+		<div style="position: absolute;left:1030px ;top:362px;">
+			<img id="c9" src="" style="width: 180px;height: 224px;">
+			<div id="ct9" class="div"></div>
+		</div>
+		<div id="focus" style="position: absolute;left:227px ;top:117px;visibility: hidden;">
+			<img id="focus_img" src="img/focus_center.png">
+		</div>
+		<!--
+        	作者：328102775@qq.com
+        	时间：2014-11-28
+        	描述：翻页
+        -->
+		<div style="position:absolute;left:822px;top:607px;height:195px;width:67px;color:black" id="pageInfob">
+			<span style="font-size: 28px;font-weight: 700;">0/0</span>
+		</div>
+		<div style="position:absolute;left:820px;top:606px;height:195px;width:67px;color:white" id="pageInfow">
+			<span style="font-size: 28px;font-weight: 700;">0/0</span>
+		</div>
+		<div id="up " style="position:absolute;left:910px;top:605px;width:130px;height:195px;visibility: hidden;">
+			<img src="img/up.png">
+		</div>
+		<div id="down " style="position:absolute;left:1030px;top:605px;width:130px;height:195px;visibility: hidden;">
+			<img src="img/down.png ">
+		</div>
+		<!--
+        	作者：328102775@qq.com
+        	时间：2014-12-03
+        	描述：loading图标,提示框
+        -->
+		<!--加载图标-->
+		<div id="loadingIcon" style="position:absolute; left:579px; top:299px; width:121px; height:121px; visibility:hidden;">
+			<img src="img/loadingIcon.gif" width="121" height="121" />
+		</div>
+		<div id="listTips" style="position:absolute; left:547px; top:268px; width:616px; height:76px; font-size:20px; color:#000; visibility:hidden;">
+			正在请求数据，请稍等！
+		</div>
+		<div style="position:absolute; left:389px; top:200px; width:478px; height:285px; background-image: url(img/pop_btm0.png); background-repeat:no-repeat; text-align:center; -webkit-transition-duration:200ms; z-index:2; visibility:hidden;" id="popMsg">
+			<table width="396" height="269" border="0" cellpadding="0" cellspacing="0" style="color:#FFFFFF">
+				<tr>
+					<td height="57" colspan="3" align="center" id="hdTitle" style="font-size:32px;">温馨提示</td>
+				</tr>
+
+				<tr>
+					<td colspan="3" id="popText" align="center" style="font-size:24px; color:#caced1; line-height:45px;">正在请求播放数据，请稍等！</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+
+</html>

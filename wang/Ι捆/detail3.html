@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8">
+		<title>news-3</title>
+		<script type="text/javascript" src="common.js"></script>
+		<script language="javascript">
+			var cenPos = 0;
+			var leftPos = 0;
+			var topPos = 0;
+			var botPos = 0
+			var area = 1;
+			var listProgs = [];
+			var menuType = 2;
+			var listArea = 0;
+			var lastArea = 0;
+			var currPage = 0;
+			var totalPage = 0;
+			var totalResult = 0;
+			var itemPerPage = 9;
+			var listAjaxObj = null;
+			var listServiceId = "";
+			var listChargeMode = "";
+			var listArea = "";
+			var listDataPos = "";
+			var oneRequestFinish = false;
+			var resumeTipsFlag = false;
+			var tipShowFlag = false;
+			var msgTimeout = -1;
+			var assetId = "";
+			var folderAssetId = "";
+			var serviceId = "";
+			var titleAssetId = "";
+			var detailAjaxObj = null;
+			var resumeTipsPos = 0;
+			var listdatePos = "";
+			var newsObj = null;
+			var newObj = null;
+			var ParagraphItem = null;
+			
+
+			document.onkeypress = grdEvent;
+			document.onirkeypress = grdEvent;
+			document.onsystemevent = grdEvent;
+
+			function grdEvent(event) {
+				var keycode = event.which;
+
+				switch (keycode) {
+					case 37: //left
+						if (resumeTipsFlag)
+							changeResumeTipsPos();
+						else if (area == 1) {
+							changeArea(0);
+						} else if (area == 2) {
+							changeList(-1);
+						} 
+//						else if (area == 3) {
+//							changeArea(1);
+//						}
+						else if (area == 4) {
+							changeList(-1);
+						}
+						return 0;
+						break;
+					case 39: //right
+						if (resumeTipsFlag)
+							changeResumeTipsPos();
+						else if (area == 0) {
+							changeArea(1);
+						} 
+//						else if (area == 1) {
+//							changeArea(3);
+//						}
+						else if (area == 2) {
+							changeList(1);
+						} else if (area == 4) {
+							changeList(1);
+						}
+						return 0;
+						break;
+					case 38: //up
+						if ((area == 0 && leftPos == 0) || (area == 1 && cenPos == 0) || area == 3) {
+							changeArea(2);
+						} else if (area == 4) {
+							changeArea(1);
+						} else if (area == 0 && leftPos != 0) {
+							changeList(-1);
+						} else if (area == 1 && cenPos != 0) {
+							changeList(-1);
+						}
+
+						return 0;
+						break;
+					case 40: //down
+						if (area == 0) {
+							changeList(1);
+						} else if (area == 1 && cenPos != 8) {
+							changeList(1);
+						} else if (area == 1 && cenPos == 8) {
+							changeArea(4);
+						} else if (area == 2) {
+							changeArea(1);
+						}
+						return 0;
+						break;
+					case 13:
+						doSelect();
+						return 0;
+						break;
+					case 4098: // menu
+					case 340: // back
+					case 8:
+						backurl();
+						return 0;
+						break;
+				}
+			}
+
+			function changeList(num) {
+				if (area == 0) {
+					$("left" + leftPos).style.visibility = "hidden";
+					leftPos += num;
+					if (leftPos == 6) leftPos = 0;
+					$("left" + leftPos).style.visibility = "visible";
+				}
+				if (area == 1) {
+					$("mid" + cenPos).style.visibility = "hidden";
+					cenPos += num;
+					$("mid" + cenPos).style.visibility = "visible";
+				}
+				if (area == 2) {
+					topPos += num;
+					if (topPos == 4) topPos = 0;
+					if (topPos == -1) topPos = 3;
+					$("focus").style.left = 930 + 77 * topPos + "px";
+					$("focus").style.top = "70px";
+				}
+				if (area == 4) {
+					$("bot" + botPos).style.visibility = "hidden";
+					botPos += num;
+					if (botPos == 2) botPos = 0;
+					if (botPos == -1) botPos = 1;
+					$("bot" + botPos).style.visibility = "visible";
+				}
+			}
+
+			function changeArea(num) {
+				if (num == 0) {
+					area = 0;
+					$('left' + leftPos).style.visibility = "visible";
+					$('mid' + cenPos).style.visibility = "hidden";
+				} else if (num == 1) {
+					area = 1;
+					$('mid' + cenPos).style.visibility = "visible";
+					$('left' + leftPos).style.visibility = "hidden";
+					$('focus').style.visibility = "hidden";
+					$("bot0").style.visibility = "hidden";
+					$("bot1").style.visibility = "hidden";
+					$("right0").style.visibility = "hidden";
+				} else if (num == 2) {
+					area = 2;
+					$('left' + leftPos).style.visibility = "hidden";
+					$('mid' + cenPos).style.visibility = "hidden";
+					$("focus").style.visibility = "visible";
+					$("right0").style.visibility = "hidden";
+				} else if (num == 3) {
+					area = 3;
+					$('mid' + cenPos).style.visibility = "hidden";
+					$("focus").style.visibility = "hidden";
+					$("right0").style.visibility = "visible";
+				} else if (num == 4) {
+					area = 4;
+					$('mid' + cenPos).style.visibility = "hidden";
+					$("bot0").style.visibility = "visible";
+				}
+			}
+
+			function changePage(_num) {
+				if (currPage == 0 && _num < 0) {
+					showPop("当前已是第一页");
+				} else if (currPage == totalPage - 1 && _num > 0) {
+					showPop("当前已是最后一页");
+				} else {
+					currPage += _num;
+					getDetailData();
+				}
+			}
+
+			function showPop(_txt) {
+				$("popText").innerText = _txt;
+				$("popMsg").style.visibility = "visible";
+				tipShowFlag = true;
+				clearTimeout(msgTimeout);
+				msgTimeout = setTimeout('$("popMsg").style.visibility = "hidden";tipShowFlag = false;', 3000);
+			}
+
+			function init() {
+				listArea = getUrlParams("listArea", window.location.href);
+				listCurrPage = getUrlParams("listCurrPage", window.location.href);
+				listDataPos = getUrlParams("listDataPos", window.location.href);
+				listDetailPos = getUrlParams("listDetailPos", window.location.href);
+				listDetailPage = getUrlParams("listDetailPage", window.location.href);
+				assetId = getUrlParams("assetId", window.location.href);
+				if (listArea != "") listArea = parseInt(listArea, 10);
+				if (listCurrPage != "") listCurrPage = parseInt(listCurrPage, 10);
+				if (listDataPos != "") listDataPos = parseInt(listDataPos, 10);
+				if (listArea == 2) {
+					currPage = listCurrPage;
+				}
+				//getlistProgData();
+				getDetailData();
+			}
+
+			function initDetailInfo() {
+				var srcPrefix = DEBUG == 0 ? ("http://" + ip + ":" + port + "/") : "";
+				for (var i = 0; i < ParagraphItem.ParagraphItem.length; i++) {
+					var name =  ParagraphItem.ParagraphItem[i].paragraphName;
+					$("m" + i).innerHTML = getStrChineseLen(name, 15);
+				}
+			}
+
+			/*function initDetailInfo() {
+				var srcPrefix = DEBUG == 0 ? ("http://" + ip + ":" + port + "/") : "";
+				//var posterUrl = "img/detailDefault.jpg";
+				for (var i = 0; i < Paragraph; i++) {
+					if (i < listProgs.length) {
+						var name = listProgs[i].type == "S" ? listProgs[i].displayName : listProgs[i].titleBrief;
+						$("m" + i).innerHTML = getStrChineseLen(name, 15);
+					}
+				}
+				} else $("name").innerText = "暂无名称";
+
+				var director = newsObj.Director[0].name;
+				Utility.println("detailMovie getDetailData director=" + director);
+				if (typeof(director) == "undefined" || director == "") {
+					director = "暂无";
+				} else $("director").innerHTML = "导演：<br/>" + getStrChineseLen(director, 20);
+
+				var actor = newsObj.actorsDisplay;
+				Utility.println("detailMovie getDetailData actor=" + actor);
+				if (typeof(actor) == "undefined" || actor == "") {
+					actor = "暂无";
+				} else $("actor").innerHTML = "演员：<br/>" + getStrChineseLen(actor, 50);
+
+				/*
+				var runtime = newsObj.runtime;
+				Utility.println("detailMovie getDetailData runtime="+runtime);	
+				if(typeof(runtime) == "undefined" || runtime == ""){
+					runtime = "未知";
+				}
+				*/
+			/*
+				var introduction = newsObj.summarMedium;
+				Utility.println("detailMovie getDetailData introduction=" + introduction);
+				if (typeof(introduction) == "undefined" || introduction == "") {
+					introduction = "暂无";
+				} else $("introduction").innerHTML = "故事简介：<br/> &nbsp; &nbsp; &nbsp; &nbsp;" + getStrChineseLen(introduction, 200);
+
+				var year = newsObj.year;
+				Utility.println("detailMovie getDetailData year=" + year);
+				$("year").innerHTML = "年份：" + year;
+
+				//$("descInfo").innerHTML = "导演：" + director + "<br/>主演：" + actor + "<br/>片长：" + runtime + "<br/>故事简介：" + introduction;
+			}*/
+
+			/*
+			function getlistProgData() {
+				listProgs = [];
+				//clearListPrograms();
+				if (listAjaxObj == null) {
+					listAjaxObj = new ajaxClass();
+					listAjaxObj.frame = window;
+				} else {
+					listAjaxObj.requestAbort();
+				}
+				$("loadingIcon").style.visibility = "visible";
+				listAjaxObj.successCallback = function(_xmlHttp, _params) {
+					var data = parseDom(this.getResponseXML());
+					var jsonData = parseJson(data.toJson());
+					if (typeof(jsonData) != "object" || jsonData == null) {
+						$("listTips").innerText = "获取数据失败！";
+						$("listTips").style.visibility = "visible";
+						if (!oneRequestFinish) oneRequestFinish = true;
+						else $("loadingIcon").style.visibility = "hidden";
+						return;
+					}
+					var key = "FolderContents";
+					if (key in jsonData) {
+						var totalResult = parseInt(jsonData.FolderContents[0].totalResults, 10);
+						listServiceId = jsonData.FolderContents[0].FolderFrame[0].serviceId;
+						listChargeMode = jsonData.FolderContents[0].FolderFrame[0].chargeMode;
+						if (totalResult > 0) {
+							//理论上来说应该没有电影返回，可以不用考虑。
+							var series = jsonData.FolderContents[0].ChildFolder;
+							var movies = jsonData.FolderContents[0].SelectableItem;
+							//添加一个属性标识是电视剧还是电影
+							if (typeof series != "undefined") {
+								for (var i = 0; i < series.length; i++) {
+									series[i].type = "S";
+								}
+							} else series = [];
+							if (typeof movies != "undefined") {
+								for (var i = 0; i < movies.length; i++) {
+									movies[i].type = "M";
+								}
+							} else movies = [];
+							listProgs = series.concat(movies);
+							//hashTableObj.put(_params[0], listProgs);
+							totalPage = Math.ceil(totalResult / itemPerPage);
+							currPage = Number(currPage);
+							$("loadingIcon").style.visibility = "hidden";
+							//initListPrograms();
+							$("listTips").style.visibility = "hidden";
+
+						} else {
+							$("listTips").innerText = "暂无数据";
+							$("listTips").style.visibility = "visible";
+							if (!oneRequestFinish) oneRequestFinish = true;
+							else $("loadingIcon").style.visibility = "hidden";
+						}
+					} else if ("NavServerResponse" in jsonData) {
+						var message = jsonData.NavServerResponse[0].message;
+						var code = jsonData.NavServerResponse[0].code;
+						$("listTips").innerText = "发生错误！错误码：" + code + "，请咨询客服96311。";
+						$("listTips").style.visibility = "visible";
+						if (!oneRequestFinish) oneRequestFinish = true;
+						else $("loadingIcon").style.visibility = "hidden";
+					} else {
+						$("listTips").innerText = "获取数据失败！";
+						$("listTips").style.visibility = "visible";
+						if (!oneRequestFinish) oneRequestFinish = true;
+						else $("loadingIcon").style.visibility = "hidden";
+					}
+					$("loadingIcon").style.visibility = "hidden";
+				};
+				listAjaxObj.failureCallback = function(_xmlHttp, _params) {
+					$("listTips").innerText = "获取数据失败！";
+					$("listTips").style.visibility = "visible";
+					if (!oneRequestFinish) oneRequestFinish = true;
+					else $("loadingIcon").style.visibility = "hidden";
+				};
+				listAjaxObj.urlParameters = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><GetFolderContents assetId='" + "MANU0000000000078799" + "' portalId='1' client='" + CAManager.cardSerialNumber + "' account='" + account + "' startAt='" + (currPage * itemPerPage + 1) + "' maxItems='" + itemPerPage + "' languageCode='Zh-CN' regionCode='1' includeFolderProperties='Y' includeSubFolder='Y' includeSelectableItem='Y' profile='1.0'/>";
+				listAjaxObj.callbackParams = [hashTableKey];
+				listAjaxObj.url = ["http://" + ip + ":" + port + "/GetFolderContents", "data/listProgData_" + menuType + "_" + (currPage + 1) + ".xml"][DEBUG];
+				listAjaxObj.requestData("POST");
+			}
+			*/
+	
+			function getDetailData() {
+				if (detailAjaxObj == null) {
+					detailAjaxObj = new ajaxClass();
+					detailAjaxObj.frame = window;
+				} else {
+					detailAjaxObj.requestAbort();
+				}
+				//$("popMsg").innerText = "正在请求数据，请稍等！";
+				//$("popMsg").style.visibility = "visible";
+				$("loadingIcon").style.visibility = "visible";
+				detailAjaxObj.successCallback = function(_xmlHttp, _params) {
+					
+					var data = parseDom(this.getResponseXML());
+					var jsonData = parseJson(data.toJson());
+					if (typeof(jsonData) != "object" || jsonData == null) {
+						Utility.println("detailNews getDetailData error! error_code=" + jsonData.error_code);
+						$("popMsg").innerText = "获取数据失败！";
+						$("popMsg").style.visibility = "visible";
+						$("loadingIcon").style.visibility = "hidden";
+						return;
+					}
+					var key = "ItemData";
+					Utility.println("detailNews getDetailData key in jsondata=" + (key in jsonData));
+					if (key in jsonData) {
+						ParagraphItem = jsonData.ItemData[0];
+						newsObj = jsonData.ItemData[0].ParagraphItem[0];
+						listProgs = jsonData.ItemData[0].SelectableItem[0];
+						totalPage = Math.ceil(ParagraphItem.ParagraphItem.length/itemPerPage);
+							currPage = Number(currPage);
+							$("pageInfob").innerHTML = '<span style="font-size:28px">' + (currPage + 1) + '</span>/' + totalPage;
+							$("pageInfow").innerHTML = '<span style="font-size:28px">' + (currPage + 1) + '</span>/' + totalPage;
+							$("loadingIcon").style.visibility = "hidden";
+							/***********
+							 * 
+
+* */
+ 
+				
+						initDetailInfo();
+						//$("playBtn").style.visibility = "visible";
+						$("loadingIcon").style.visibility = "hidden";
+					} else if ("NavServerResponse" in jsonData) {
+						var message = jsonData.NavServerResponse[0].message;
+						var code = jsonData.NavServerResponse[0].code;
+						Utility.println("detailNews getDetailData error! message=" + message + ";code=" + code);
+						$("popMsg").innerText = message;
+						$("popMsg").style.visibility = "visible";
+						$("loadingIcon").style.visibility = "hidden";
+					} else {
+						Utility.println("detailNews getDetailData FolderContents is not in jsondata");
+						$("popMsg").innerText = "获取数据失败！";
+						$("popMsg").style.visibility = "visible";
+						$("loadingIcon").style.visibility = "hidden";
+					}
+				};
+				detailAjaxObj.failureCallback = function(_xmlHttp, _params) {
+					Utility.println("detailNews getDetailData request failed");
+					$("popMsg").innerText = "获取数据失败！";
+					$("popMsg").style.visibility = "visible";
+					$("loadingIcon").style.visibility = "hidden";
+				};
+				detailAjaxObj.urlParameters = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><GetItemData titleAssetId='"+ assetId +"' portalId='1' client='" + CAManager.cardSerialNumber + "' account='" + account + "' profile='1'/>";
+				detailAjaxObj.url = ["http://" + ip + ":" + port + "/GetItemData", "data/detailProgData_1.xml"][DEBUG];
+				detailAjaxObj.requestData("POST");
+				Utility.println("detailNews getDetailData urlParameters=" + detailAjaxObj.urlParameters);
+				Utility.println("detailNews getDetailData url=" + detailAjaxObj.url);
+			}
+
+			function doSelect() {
+					if (area == 2 && topPos == 3)
+						gotoIndex();
+					else if (area == 1) {
+						if (resumeTipsFlag) {
+							if (resumeTipsPos == 0) { //断点播放
+								getResumeParams();
+							} else { //从头播
+								getPlayParams();
+							}
+							hideResumeTips();
+						} else
+							checkSavedProgram();
+					}
+					 else if (area == 0){
+					if (leftPos == 0)
+						window.location.href = "../index.html";
+					else if (leftPos == 1)
+						window.location.href = "../zou/redian.html";
+					else if (leftPos == 2)
+						window.location.href = "../zou/bendi.html";
+					else if (leftPos == 3)
+						window.location.href = "../zou/guonei.html";
+					else if (leftPos == 4)
+						window.location.href = "../zou/quanqiu.html";
+					else if (leftPos == 5)
+						window.location.href = "../zou/shendu.html";
+				}
+				}
+						
+			function getPlayParams() {
+				if (detailAjaxObj == null) {
+					detailAjaxObj = new ajaxClass();
+					detailAjaxObj.frame = window;
+				} else {
+					detailAjaxObj.requestAbort();
+				}
+				clearTimeout(msgTimeout);
+				$("loadingIcon").style.visibility = "visible";
+				tipShowFlag = true;
+				detailAjaxObj.successCallback = function(_xmlHttp, _params) {
+					var data = parseDom(this.getResponseXML());
+					var jsonData = parseJson(data.toJson());
+					if (typeof(jsonData) != "object" || jsonData == null) {
+						$("popText").innerText = "获取播放数据失败！";
+						msgTimeout = setTimeout('$("popMsg").style.visibility = "hidden";tipShowFlag = false;', 3000);
+						$("popMsg").style.visibility = "visible";
+						$("loadingIcon").style.visibility = "hidden";
+						return;
+					}
+					if ("NavServerResponse" in jsonData) {
+						// var message = jsonData.NavServerResponse[0].message;
+						// var code = jsonData.NavServerResponse[0].code;
+						// $("popText").innerText = "发生错误！错误码："+code+"，请咨询客服96311。";
+						// msgTimeout = setTimeout('$("popMsg").style.visibility = "hidden";tipShowFlag = false;',3000);
+						// $("popMsg").style.visibility = "visible";
+						$("loadingIcon").style.visibility = "hidden";
+						return;
+					}
+					$("popMsg").style.visibility = "hidden";
+					$("loadingIcon").style.visibility = "hidden";
+					tipShowFlag = false;
+					var rtsp = jsonData.StartResponse[0].rtsp.split(";");
+					var serverId = rtsp[2].split(":");
+					var playUrl = rtsp[0] + ";" + rtsp[1] + ";" + serverId[0] + ":8080" + ";areacode=" + VOD.areaCode + ";client=" + CAManager.cardSerialNumber;
+					GlobalVarManager.setItemStr("vodPlayUrl", playUrl);
+					var start = ParagraphItem.ParagraphItem[cenPos].startTime.split(":");
+					var startmiao = Number(start[0])*3600 + Number(start[1])*60 + Number(start[2]);
+					 var end = ParagraphItem.ParagraphItem[cenPos].endTime.split(":");
+					 var endmiao = Number(end[0])*3600 + Number(end[1])*60 + Number(end[2]);
+					var displayRunTime = endmiao - startmiao;
+					 var resumePoint = startmiao;
+					
+					window.location.href = playIp + "vodPlay.htm?purchaseToken=" + jsonData.StartResponse[0].purchaseToken + "&playCurrName=" + ParagraphItem.ParagraphItem[cenPos].paragraphName + "&selectItemCount=" + totalResult + "&childAssetId=" + assetId + "&titleAssetId=" + titleAssetId + "&startTime=0&resumePoint=0&rentDateTime=" + listProgs.RentalInfo[0].rentDateTime + "&providerId=" + listProgs.providerId + "&displayRunTime=" + displayRunTime + "&folderAssetId=MANU0000000000078799" + "&back=" + returnIp + "detail3.html#cenPos=" + cenPos;
+					
+				
+				};
+				detailAjaxObj.failureCallback = function(_xmlHttp, _params) {
+					Utility.println("detailChildren getPlayParams request failed");
+					$("popText").innerText = "获取播放数据失败！";
+					msgTimeout = setTimeout('$("popMsg").style.visibility = "hidden";tipShowFlag = false;', 3000);
+					$("popMsg").style.visibility = "visible";
+					$("loadingIcon").style.visibility = "hidden";
+				};
+				var tmpServiceId = serviceId;
+				if (chargeMode == "5" || chargeMode == "6") tmpServiceId = listProgs.serviceId;
+				detailAjaxObj.urlParameters = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><SelectionStart titleAssetId='" + assetId + "' startTime='" +ParagraphItem.ParagraphItem[cenPos].startTime+ "' endTime='"+ ParagraphItem.ParagraphItem[cenPos].endTime+"' folderAssetId='" + assetId + "' portalId='1'  client='" + CAManager.cardSerialNumber + "' account='" + account + "' serviceId='" + tmpServiceId + "'/>";
+
+				detailAjaxObj.url = "http://" + ip + ":" + port + "/SelectionStart";
+				detailAjaxObj.requestData("POST");
+			}
+
+
+			function getResumeParams() {
+				if (detailAjaxObj == null) {
+					detailAjaxObj = new ajaxClass();
+					detailAjaxObj.frame = window;
+				} else {
+					detailAjaxObj.requestAbort();
+				}
+				clearTimeout(msgTimeout);
+				$("loadingIcon").style.visibility = "visible";
+				tipShowFlag = true;
+				detailAjaxObj.successCallback = function(_xmlHttp, _params) {
+					var data = parseDom(this.getResponseXML());
+					var jsonData = parseJson(data.toJson());
+					if (typeof(jsonData) != "object" || jsonData == null) {
+						$("popText").innerText = "获取播放数据失败！";
+						msgTimeout = setTimeout('$("popMsg").style.visibility = "hidden";tipShowFlag = false;', 3000);
+						$("popMsg").style.visibility = "visible";
+						$("loadingIcon").style.visibility = "hidden";
+						return;
+					}
+					if ("NavServerResponse" in jsonData) {
+						var message = jsonData.NavServerResponse[0].message;
+						var code = jsonData.NavServerResponse[0].code;
+						Utility.println("detailChildren getResumeParams error! message=" + message + ";code=" + code);
+						$("popText").innerText = "发生错误！错误码：" + code + "，请咨询客服96311。";
+						msgTimeout = setTimeout('$("popMsg").style.visibility = "hidden";tipShowFlag = false;', 3000);
+						$("popMsg").style.visibility = "visible";
+						$("loadingIcon").style.visibility = "hidden";
+						return;
+					}
+					$("popMsg").style.visibility = "hidden";
+					$("loadingIcon").style.visibility = "hidden";
+					tipShowFlag = false;
+					var rtsp = jsonData.ResumeResponse[0].rtsp.split(";");
+					var serverId = rtsp[2].split(":");
+					var playUrl = rtsp[0] + ";" + rtsp[1] + ";" + serverId[0] + ":8080" + ";areacode=" + VOD.areaCode + ";client=" + CAManager.cardSerialNumber;
+					GlobalVarManager.setItemStr("vodPlayUrl", playUrl);
+					
+					window.location.href = playIp + "vodPlay.htm?purchaseToken=" + jsonData.ResumeResponse[0].purchaseToken + "&previewId=" + jsonData.ResumeResponse[0].previewAssetId + "&startTime=" + jsonData.ResumeResponse[0].startTime + "&playCurrName=" + ParagraphItem.ParagraphItem[cenPos].paragraphName + "&selectItemCount=" + totalResult + "&childAssetId=" + listProgs.assetId + "&resumePoint=" + resumePoint + "&rentDateTime=" + listProgs.RentalInfo[0].rentDateTime + "&providerId=" + listProgs.providerId + "&displayRunTime=" + displayRunTime + "&folderAssetId=MANU0000000000078799" + "&from=" + returnIp + "detail2.html#listDataPos=" + cenPos;
+					
+				
+				};
+				detailAjaxObj.failureCallback = function(_xmlHttp, _params) {
+					Utility.println("detailChildren getResumeParams request failed");
+					$("popText").innerText = "获取播放数据失败！";
+					msgTimeout = setTimeout('$("popMsg").style.visibility = "hidden";tipShowFlag = false;', 3000);
+					$("popMsg").style.visibility = "visible";
+					$("loadingIcon").style.visibility = "hidden";
+				};
+				var tmpServiceId = serviceId;
+				if (chargeMode == "5" || chargeMode == "6") tmpServiceId = listProgs.serviceId;
+				detailAjaxObj.urlParameters = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><SelectionResume portalId='1'  client='" + CAManager.cardSerialNumber + "' account='" + account + "' titleProviderId='" + listProgs.providerId + "' titleAssetId='" + listProgs.assetId + "' purchaseToken='" + timePosition + "' fromStart='N' serviceId='" + tmpServiceId + "'/>";
+
+				detailAjaxObj.url = "http://" + ip + ":" + port + "/SelectionResume";
+				detailAjaxObj.requestData("POST");
+			}
+
+
+			function checkSavedProgram() {
+				if (detailAjaxObj == null) {
+					detailAjaxObj = new ajaxClass();
+					detailAjaxObj.frame = window;
+				} else {
+					detailAjaxObj.requestAbort();
+				}
+				clearTimeout(msgTimeout);
+				$("loadingIcon").style.visibility = "visible";
+				tipShowFlag = true;
+				detailAjaxObj.successCallback = function(_xmlHttp, _params) {
+					var data = parseDom(this.getResponseXML());
+					var jsonData = parseJson(data.toJson());
+					if (typeof(jsonData) != "object" || jsonData == null) {
+						getPlayParams();
+						return;
+					}
+					var key = "NavServerResponse";
+					if (key in jsonData) {
+						var message = jsonData.NavServerResponse[0].message;
+						var code = jsonData.NavServerResponse[0].code;
+						Utility.println("detailChildren checkSavedProgram message=" + message + "&&code=" + code);
+						//$("popText").innerText = "获取书签失败，错误码："+code+"，请咨询客服96311，直接重头开始播放！";
+						//msgTimeout = setTimeout('$("popMsg").style.visibility = "hidden";tipShowFlag = false;getPlayParams();',3000);
+						getPlayParams();
+					} else if ("CheckSavedProgramResult" in jsonData) {
+						var bookmarkFlag = jsonData.CheckSavedProgramResult[0].bookmarkFlag;
+						timePosition = jsonData.CheckSavedProgramResult[0].timePosition;
+						if (bookmarkFlag == "true") {
+							$("popMsg").style.visibility = "hidden";
+							$("loadingIcon").style.visibility = "hidden";
+							tipShowFlag = false;
+							showResumeTips();
+						} else getPlayParams();
+					} else {
+						$("popText").innerText = "获取书签失败，直接重头开始播放！";
+						msgTimeout = setTimeout('$("popMsg").style.visibility = "hidden";tipShowFlag = false;getPlayParams();', 3000);
+						getPlayParams();
+					}
+				};
+				detailAjaxObj.failureCallback = function(_xmlHttp, _params) {
+					Utility.println("detailChildren checkSavedProgram request failed");
+					//$("popText").innerText = "获取书签失败，直接重头开始播放！";
+					//msgTimeout = setTimeout('$("popMsg").style.visibility = "hidden";tipShowFlag = false;getPlayParams();',3000);
+					getPlayParams();
+				};
+				var tmpServiceId = serviceId;
+				if (chargeMode == "5" || chargeMode == "6") tmpServiceId = listProgs.serviceId;
+				detailAjaxObj.urlParameters = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><CheckSavedProgram assetId='" + listProgs.assetId + "' portalId='1' client='" + CAManager.cardSerialNumber + "' account='" + account + "' folderAssetId='" + folderAssetId + "' providerId='" + listProgs.providerId + "' profile='1.0' languageCode='zh-CN'/>";
+				detailAjaxObj.url = "http://" + ip + ":" + port + "/CheckSavedProgram";
+				detailAjaxObj.requestData("POST");
+			}
+
+			function changeResumeTipsPos() {
+				resumeTipsPos = resumeTipsPos == 0 ? 1 : 0;
+				$("playBtn0").style.backgroundImage = ["url(img/botton0_2.png)", "url(img/botton0_1.png)"][resumeTipsPos];
+				$("playBtn1").style.backgroundImage = ["url(img/botton0_1.png)", "url(img/botton0_2.png)"][resumeTipsPos];
+			}
+
+			function showResumeTips() {
+				$("playTips").style.visibility = "visible";
+				resumeTipsFlag = true;
+				resumeTipsPos = 0;
+				$("playBtn0").style.backgroundImage = "url(img/botton0_2.png)";
+				$("playBtn1").style.backgroundImage = "url(img/botton0_1.png)";
+			}
+
+			function hideResumeTips() {
+				$("playTips").style.visibility = "hidden";
+				resumeTipsFlag = false;
+			}
+
+			function backurl() {
+				window.location.href = "../zou/bendi.html?listArea="+listArea+"&listCurrPage="+listCurrPage+"&listDataPos="+listDataPos;
+			}	
+					
+		</script>
+
+	</head>
+
+	<body style="margin: 0 0 0 0;" background="img/bg.png" onload="init()">
+
+		<!--left-->
+		<div id="left0" style="position: absolute; left: 74px; top: 112px; width: 0px; height: 0px; visibility: hidden;">
+			<img src="img/toutiao.png">
+		</div>
+		<div id="left1" style="position: absolute; left: 74px; top: 187px; width: 0px; height: 0px; visibility: hidden;">
+			<img src="img/redian.png">
+		</div>
+		<div id="left2" style="position: absolute; left: 74px; top: 262px; width: 0px; height: 0px; visibility: hidden;">
+			<img src="img/bendi.png">
+		</div>
+		<div id="left3" style="position: absolute; left: 74px; top: 335px; width: 0px; height: 0px; visibility: hidden;">
+			<img src="img/guonei.png">
+		</div>
+		<div id="left4" style="position: absolute; left: 74px; top: 408px; width: 0px; height: 0px; visibility: hidden;">
+			<img src="img/quanqiu.png">
+		</div>
+		<div id="left5" style="position: absolute; left: 74px; top: 481px; width: 0px; height: 0px; visibility: hidden;">
+			<img src="img/shendu.png">
+		</div>
+
+		<!--标题-->
+		<div id="m0" style="position: absolute; left: 245px; top: 140px; width: 300px; height: 0px; font-size: 24px; vertical-align: middle;">发的发生的领导
+		</div>
+		<div id="m1" style="position: absolute; left: 245px; top: 193px; width: 300px; height: 0px; font-size: 24px; vertical-align: middle;">放大师傅撒娇开发
+		</div>
+		<div id="m2" style="position: absolute; left: 245px; top: 246px; width: 300px; height: 0px; font-size: 24px; vertical-align: middle;">范德萨发士大夫士大夫
+		</div>
+		<div id="m3" style="position: absolute; left: 245px; top: 299px; width: 300px; height: 0px; font-size: 24px; vertical-align: middle;">太热委托人为台湾
+		</div>
+		<div id="m4" style="position: absolute; left: 245px; top: 352px; width: 300px; height: 0px; font-size: 24px; vertical-align: middle;">发大水法萨芬撒
+		</div>
+		<div id="m5" style="position: absolute; left: 245px; top: 405px; width: 300px; height: 0px; font-size: 24px; vertical-align: middle;">我让我确认权威人物
+		</div>
+		<div id="m6" style="position: absolute; left: 245px; top: 458px; width: 300px; height: 0px; font-size: 24px; vertical-align: middle;">范玮琪服务区范围
+		</div>
+		<div id="m7" style="position: absolute; left: 245px; top: 511px; width: 300px; height: 0px; font-size: 24px; vertical-align: middle;">让我确认为二位日期
+		</div>
+		<div id="m8" style="position: absolute; left: 245px; top: 564px; width: 300px; height: 0px; font-size: 24px; vertical-align: middle;">千万人味儿无人区
+		</div>
+
+		<!--mid-->
+		<div id="mid0" style="position: absolute; left: 240px; top: 134px; width: 0px; height: 0px; visibility: visible;">
+			<img src="img/focus0.png">
+		</div>
+		<div id="mid1" style="position: absolute; left: 240px; top: 187px; width: 0px; height: 0px; visibility: hidden;">
+			<img src="img/focus0.png">
+		</div>
+		<div id="mid2" style="position: absolute; left: 240px; top: 240px; width: 0px; height: 0px; visibility: hidden;">
+			<img src="img/focus0.png">
+		</div>
+		<div id="mid3" style="position: absolute; left: 240px; top: 293px; width: 0px; height: 0px; visibility: hidden;">
+			<img src="img/focus0.png">
+		</div>
+		<div id="mid4" style="position: absolute; left: 240px; top: 346px; width: 0px; height: 0px; visibility: hidden;">
+			<img src="img/focus0.png">
+		</div>
+		<div id="mid5" style="position: absolute; left: 240px; top: 399px; width: 0px; height: 0px; visibility: hidden;">
+			<img src="img/focus0.png">
+		</div>
+		<div id="mid6" style="position: absolute; left: 240px; top: 452px; width: 0px; height: 0px; visibility: hidden;">
+			<img src="img/focus0.png">
+		</div>
+		<div id="mid7" style="position: absolute; left: 240px; top: 505px; width: 0px; height: 0px; visibility: hidden;">
+			<img src="img/focus0.png">
+		</div>
+		<div id="mid8" style="position: absolute; left: 240px; top: 558px; width: 0px; height: 0px; visibility: hidden;">
+			<img src="img/focus0.png">
+		</div>
+
+		<!--bottom-->
+		<div id="bot0" style="position: absolute; left: 700px; top: 629px; width: 0px; height: 0px; visibility: hidden;">
+			<img src="img/up.png">
+		</div>
+		<div id="bot1" style="position: absolute; left: 810px; top: 629px; width: 0px; height: 0px; visibility: hidden;">
+			<img src="img/down.png">
+		</div>
+
+		<!--right-->
+		<div id="right0" style="position: absolute; left: 920px; top: 120px; width: 0px; height: 0px; visibility: hidden;">
+			<img src="img/focusRight.png">
+		</div>
+
+		<!--top-->
+		<div id="focus" style="position: absolute; left: 930px; top: 70px; width: 0px; height: 0px; visibility: hidden;">
+			<img src="img/focusTop.png">
+		</div>
+
+		<!--title-->
+		<div style="position: absolute; left: 934px; top: 73px; width: 0px; height: 0px; z-index: 5;">
+			<img src="img/title.png">
+		</div>
+
+		<!--PageInfo-->
+		<div style="position:absolute;left:622px;top:632px;height:195px;width:67px;color:black" id="pageInfob">
+			<span style="font-size: 28px;font-weight: 700;">0/0</span>
+		</div>
+		<div style="position:absolute;left:620px;top:631px;height:195px;width:67px;color:white" id="pageInfow">
+			<span style="font-size: 28px;font-weight: 700;">0/0</span>
+		</div>
+
+		<!--Loading-->
+		<!--加载图标-->
+		<div id="loadingIcon" style="position:absolute; left:579px; top:299px; width:121px; height:121px; visibility:hidden;">
+			<img src="img/loadingIcon.gif" width="121" height="121" />
+		</div>
+
+		<div style="position:absolute; left:389px; top:200px; width:478px; height:285px; background-image: url(img/pop_btm0.png); background-repeat:no-repeat; text-align:center; -webkit-transition-duration:200ms; z-index:2; visibility:hidden;" id="popMsg">
+			<table width="396" height="269" border="0" cellpadding="0" cellspacing="0" style="color:#FFFFFF">
+				<tr>
+					<td height="57" colspan="3" align="center" id="hdTitle" style="font-size:32px;">温馨提示</td>
+				</tr>
+
+				<tr>
+					<td colspan="3" id="popText" align="center" style="font-size:12px; color:#caced1; line-height:45px;">正在请求播放数据，请稍等！</td>
+				</tr>
+			</table>
+		</div>
+		<div id="listTips" style="position:absolute; left:547px; top:268px; width:616px; height:76px; font-size:20px; color:#000; visibility:hidden;">
+			正在请求数据，请稍等！
+		</div>
+
+		<!-- 断点提示框 -->
+		<div style="position:absolute; left:389px; top:200px; width:478px; height:285px; background-image: url(img/pop_btm0.png); background-repeat:no-repeat; text-align:center;-webkit-transition-duration:200ms; z-index:2; visibility:hidden;" id="playTips">
+			<table width="396" height="269" border="0" cellpadding="0" cellspacing="0" style="color:#FFFFFF">
+				<tr>
+					<td height="57" colspan="3" align="center" id="hdTitle" style="font-size:32px;">温馨提示</td>
+				</tr>
+
+				<tr>
+					<td colspan="3" id="hdContent" style="font-size:24px; color:#caced1; line-height:45px;" align="center">是否从上次断点开始播放?</td>
+				</tr>
+				<tr>
+					<td height="73" align="center" style="background:url(img/botton0_2.png) no-repeat center; color:#000; font-size:27px;" id="playBtn0">是</td>
+					<td align="center" style="background:url(img/botton0_1.png) no-repeat center; color:#000; font-size:27px;" id="playBtn1">否</td>
+				</tr>
+			</table>
+		</div>
+
+	</body>
+
+</html>
